@@ -33,8 +33,9 @@ jobs:
       - name: 执行推送
         env:
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          TEST_MODE: ${{ inputs.test_mode || 'false' }}
         run: |
-          if [ "${{ inputs.test_mode }}" == "true" ]; then
+          if [ "$TEST_MODE" = "true" ]; then
             echo "测试模式：仅拉取数据，不推送"
             python -c "
             import os, sys, requests

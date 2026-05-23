@@ -18,7 +18,7 @@ if not WECOM_WEBHOOK_URL:
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 aihot-skill/0.2.0"
 BASE_URL = "https://aihot.virxact.com"
-TAKE_COUNT = 10  # 每次推送精选条数
+TAKE_COUNT = 6   # 每次推送精选条数（企业微信 markdown 上限 4096 字符）
 
 
 def get_recent_items(hours: int = 24, limit: int = TAKE_COUNT) -> List[Dict]:
@@ -78,38 +78,36 @@ def format_markdown(items: List[Dict], push_time: str) -> str:
     if not items:
         return f"**📭 AI HOT · {push_time}**\n\n过去 24 小时暂无精选 AI 动态"
 
-    # 按分类分组
-    categories: Dict[str, List[Dict]] = {}
-    for item in items:
-        cat = item.get("category") or "other"
-        if cat not in categories:
-            categories[cat] = []
-        categories[cat].append(item)
+    lines = [
+        f"**🤖 AI HOT · {push_time}**（{len(items)} 条精选 · 24小时内）",
+        ""
+    ]
 
-    # 构建消息
-    lines = [f"**🤖 AI HOT · {push_time}**（{len(items)} 条精选）", ""]
+    for i, item in enumerate(items, 1):
+        title = item.get("title", "无标题")
+        source = item.get("source", "未知来源")
+        summary = item.get("summary", "")
+        url = item.get("url", "")
+        ago = time_ago(item.get("publishedAt", ""))
+        category = format_category(item.get("category", ""))
 
-    # 遍历所有条目，保持全局编号
-    global_idx = 1
+        lines.append(f"**{i}. {title}**")
+        lines.append(f"{category} · {source} · {ago}")
 
-    for cat_key, cat_items in categories.items():
-        cat_label = format_category(cat_key)
-        for item in cat_items:
-            title = item.get("title", "无标题")
-            source = item.get("source", "未知来源")
-            summary = item.get("summary", "")
-            if summary:
-                summary = summary[:80].replace("\n", " ").strip()
-            url = item.get("url", "")
-            ago = time_ago(item.get("publishedAt", ""))
+        if summary:
+            # 摘要限制在 100 字以内，避免超出企业微信 4096 字符上限
+            summary_clean = summary.replace("\n", " ").strip()
+            if len(summary_clean) > 100:
+                summary_clean = summary_clean[:100] + "..."
+            lines.append(f"{summary_clean}")
 
-            lines.append(f"**{global_idx}. {title}**")
-            lines.append(f"> 来源：{source} · {ago}")
-            if summary:
-                lines.append(f"> {summary}...")
-            global_idx += 1
+        if url:
+            # 链接仅显示域名，完整 URL 太长会超出上限
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc if url else ""
+            lines.append(f"🔗 {domain}{urlparse(url).path if url else ''}")
 
-        lines.append("")  # 分类之间空行
+        lines.append("")  # 每条之间空行
 
     lines.append("---")
     lines.append(f"🌐 数据来源：aihot.virxact.com")
@@ -156,7 +154,8 @@ def main():
 
     # 格式化并发送
     content = format_markdown(items, push_time)
-    print(f"[{datetime.now()}] 消息内容预览：\n{content[:300]}...")
+    print(f"[{datetime.now()}] 消息总长度：{len(content)} 字符")
+    print(f"[{datetime.now()}] 消息内容预览：\n{content[:500]}...")
 
     send_markdown(content)
     print(f"[{datetime.now()}] ========== AI HOT 定时推送完成 ==========")
