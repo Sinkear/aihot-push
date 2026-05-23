@@ -9,6 +9,7 @@ import sys
 import requests
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict
+from urllib.parse import urlparse
 
 # ========== 配置 ==========
 WECOM_WEBHOOK_URL = os.environ.get("WECOM_WEBHOOK_URL")
@@ -103,9 +104,9 @@ def format_markdown(items: List[Dict], push_time: str) -> str:
 
         if url:
             # 链接仅显示域名，完整 URL 太长会超出上限
-            from urllib.parse import urlparse
             domain = urlparse(url).netloc if url else ""
-            lines.append(f"🔗 {domain}{urlparse(url).path if url else ''}")
+            path = urlparse(url).path if url else ""
+            lines.append(f"🔗 {domain}{path}")
 
         lines.append("")  # 每条之间空行
 
