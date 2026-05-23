@@ -103,10 +103,9 @@ def format_markdown(items: List[Dict], push_time: str) -> str:
             lines.append(f"{summary_clean}")
 
         if url:
-            # 链接仅显示域名，完整 URL 太长会超出上限
+            # 使用 markdown 链接语法，WeChat 支持 [文字](url) 格式可点击跳转
             domain = urlparse(url).netloc if url else ""
-            path = urlparse(url).path if url else ""
-            lines.append(f"🔗 {domain}{path}")
+            lines.append(f"🔗 [点击阅读]({url})")
 
         lines.append("")  # 每条之间空行
 
